@@ -1,55 +1,196 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Feed desde YAML</title>
+    <title>Visor de Publicaciones - Instagram API</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .post-card img { height: 300px; object-fit: cover; width: 100%; }
-    </style>
-</head>
-<body class="bg-gray-100 p-8">
-
-    <div class="max-w-6xl mx-auto">
-        <header class="text-center mb-12">
-            <h1 id="profile-name" class="text-4xl font-bold text-gray-800 mb-2">Cargando perfil...</h1>
-            <p class="text-gray-500">Datos obtenidos desde user.yml</p>
-        </header>
-
-        <div id="posts-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Los posts aparecerán aquí -->
-        </div>
-    </div>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
-        async function loadFeed() {
-            const container = document.getElementById('posts-container');
-            const title = document.getElementById('profile-name');
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        igPink: '#E1306C',
+                        igBlue: '#405DE6'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .post-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .post-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b dark:bg-slate-900/80 dark:border-slate-800">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2 font-bold text-xl tracking-tight">
+                <i data-lucide="instagram" class="text-igPink"></i>
+                <span>IG <span class="text-igPink">Scraper</span></span>
+            </div>
+            
+            <button id="theme-toggle" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:scale-110 transition-transform">
+                <i id="theme-icon" data-lucide="moon" class="w-5 h-5 text-slate-600 dark:text-yellow-400"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="container mx-auto px-6 pt-16 pb-8 text-center">
+        <h1 class="text-4xl md:text-5xl font-black mb-4">
+            Últimas <span class="bg-gradient-to-r from-igBlue via-igPink to-orange-500 bg-clip-text text-transparent">Novedades</span>
+        </h1>
+        <p id="status-text" class="text-slate-500 dark:text-slate-400 text-lg">
+            Cargando perfil configurado en la API...
+        </p>
+        <div class="h-1 w-24 bg-igPink mx-auto mt-6 rounded-full"></div>
+    </header>
+
+    <!-- Contenedor de Posts -->
+    <main class="container mx-auto px-6 py-12">
+        <!-- Spinner de carga -->
+        <div id="loading" class="flex flex-col items-center justify-center py-20">
+            <div class="animate-spin rounded-full h-14 w-14 border-4 border-slate-200 border-t-igPink mb-4"></div>
+            <p class="animate-pulse font-medium">Obteniendo datos de Instagram...</p>
+        </div>
+
+        <!-- Grid de Publicaciones -->
+        <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 hidden">
+            <!-- Las tarjetas se inyectan aquí con JavaScript -->
+        </div>
+
+        <!-- Error State -->
+        <div id="error-card" class="hidden max-w-md mx-auto bg-red-50 border border-red-200 p-6 rounded-2xl text-center">
+            <i data-lucide="alert-circle" class="w-12 h-12 text-red-500 mx-auto mb-4"></i>
+            <h3 class="text-red-800 font-bold text-lg">Error al conectar</h3>
+            <p id="error-msg" class="text-red-600 text-sm mt-2"></p>
+            <button onclick="loadInstagramData()" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition-colors">
+                Reintentar
+            </button>
+        </div>
+    </main>
+
+    <footer class="py-12 border-t dark:border-slate-800 text-center text-slate-400 text-sm">
+        <p>Conectado a: <span class="font-mono text-xs">api-web-scraping-instagram-unoffici.vercel.app</span></p>
+    </footer>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        // Tu URL de Vercel recién creada
+        const API_URL = "https://api-web-scraping-instagram-unoffici.vercel.app";
+
+        async function loadInstagramData() {
+            const grid = document.getElementById('posts-grid');
+            const loader = document.getElementById('loading');
+            const errorCard = document.getElementById('error-card');
+            const statusText = document.getElementById('status-text');
+
+            // Resetear vista
+            grid.classList.add('hidden');
+            grid.innerHTML = "";
+            loader.classList.remove('hidden');
+            errorCard.classList.add('hidden');
 
             try {
-                // Llamamos a tu API local
-                const response = await fetch('http://localhost:3000/api/posts');
+                // Llamada a tu API (traerá lo que esté en user.yml)
+                const response = await fetch(`${API_URL}/api/posts`);
                 const data = await response.json();
 
-                title.innerText = `@${data.username}`;
+                if (!response.ok) throw new Error(data.error || "Error desconocido");
 
-                container.innerHTML = data.posts.map(post => `
-                    <div class="bg-white rounded-xl shadow-lg overflow-hidden post-card">
-                        <img src="http://localhost:3000/api/image?url=${encodeURIComponent(post.image)}" alt="Post">
-                        <div class="p-4">
-                            <p class="text-gray-600 text-sm line-clamp-2 mb-4">${post.description || 'Sin descripción'}</p>
-                            <a href="${post.link}" target="_blank" class="text-blue-500 font-bold hover:underline">Ver en Instagram</a>
+                statusText.innerHTML = `Mostrando publicaciones de <span class="text-igPink font-bold">@${data.user_scraped}</span>`;
+
+                data.publicaciones.forEach(post => {
+                    // Usamos tu proxy para las imágenes
+                    const proxiedImage = `${API_URL}/api/image?url=${encodeURIComponent(post.image)}`;
+                    
+                    const card = document.createElement('div');
+                    card.className = "post-card bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col";
+                    
+                    card.innerHTML = `
+                        <div class="relative aspect-square overflow-hidden">
+                            <img src="${proxiedImage}" 
+                                 alt="Post de Instagram" 
+                                 class="w-full h-full object-cover"
+                                 loading="lazy">
+                            <div class="absolute top-4 right-4 bg-black/50 backdrop-blur-md p-2 rounded-full">
+                                <i data-lucide="external-link" class="w-4 h-4 text-white"></i>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                        <div class="p-6 flex-grow flex flex-col justify-between">
+                            <p class="text-slate-600 dark:text-slate-300 text-sm line-clamp-2 italic mb-6">
+                                "${post.alt || 'Sin descripción'}"
+                            </p>
+                            <a href="${post.url}" target="_blank" 
+                               class="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-center py-3 rounded-2xl font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                               Ver en Instagram
+                            </a>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
 
-            } catch (error) {
-                container.innerHTML = `<p class="text-red-500 text-center col-span-full">Error al conectar con la API: ${error.message}</p>`;
+                loader.classList.add('hidden');
+                grid.classList.remove('hidden');
+                lucide.createIcons();
+
+            } catch (err) {
+                console.error("Error:", err);
+                loader.classList.add('hidden');
+                errorCard.classList.remove('hidden');
+                document.getElementById('error-msg').innerText = err.message;
             }
         }
 
-        loadFeed();
+        // Lógica Modo Oscuro
+        const themeBtn = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        themeBtn.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+        });
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('theme-icon');
+            icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+            lucide.createIcons();
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar tema guardado
+            if (localStorage.getItem('theme') === 'dark') {
+                html.classList.add('dark');
+                updateThemeIcon(true);
+            }
+            lucide.createIcons();
+            loadInstagramData();
+        });
     </script>
 </body>
 </html>
