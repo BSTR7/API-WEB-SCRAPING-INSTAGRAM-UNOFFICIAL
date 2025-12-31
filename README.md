@@ -1,4 +1,3 @@
-```markdown
 # 📸 Instagram Unofficial Scraper API
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
@@ -21,7 +20,6 @@ API robusta construida en **Node.js** para extraer publicaciones de perfiles pú
    ```bash
    git clone https://github.com/BSTR7/API-WEB-SCRAPING-INSTAGRAM-UNOFFICIAL.git
    cd API-WEB-SCRAPING-INSTAGRAM-UNOFFICIAL
-   ```
 
 2. **Instalar dependencias:**
    ```bash
