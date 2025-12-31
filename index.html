@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Feed desde YAML</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .post-card img { height: 300px; object-fit: cover; width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-12">
+            <h1 id="profile-name" class="text-4xl font-bold text-gray-800 mb-2">Cargando perfil...</h1>
+            <p class="text-gray-500">Datos obtenidos desde user.yml</p>
+        </header>
+
+        <div id="posts-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Los posts aparecerán aquí -->
+        </div>
+    </div>
+
+    <script>
+        async function loadFeed() {
+            const container = document.getElementById('posts-container');
+            const title = document.getElementById('profile-name');
+
+            try {
+                // Llamamos a tu API local
+                const response = await fetch('http://localhost:3000/api/posts');
+                const data = await response.json();
+
+                title.innerText = `@${data.username}`;
+
+                container.innerHTML = data.posts.map(post => `
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden post-card">
+                        <img src="http://localhost:3000/api/image?url=${encodeURIComponent(post.image)}" alt="Post">
+                        <div class="p-4">
+                            <p class="text-gray-600 text-sm line-clamp-2 mb-4">${post.description || 'Sin descripción'}</p>
+                            <a href="${post.link}" target="_blank" class="text-blue-500 font-bold hover:underline">Ver en Instagram</a>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                container.innerHTML = `<p class="text-red-500 text-center col-span-full">Error al conectar con la API: ${error.message}</p>`;
+            }
+        }
+
+        loadFeed();
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Configuración de Usuario para Scraping
+instagram_user: "instagram"
+
+# Puedes cambiar "instagram" por cualquier otro perfil (ej: "cristiano", "nike")
+# No es necesario reiniciar el servidor para que tome los cambios en algunos casos,
+# pero se recomienda hacerlo.
