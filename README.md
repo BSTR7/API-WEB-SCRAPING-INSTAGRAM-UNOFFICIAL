@@ -7,6 +7,8 @@
 
 API robusta construida en **Node.js** para extraer publicaciones de perfiles públicos de Instagram. Optimizada para **Vercel** y configurable mediante archivos **YAML**.
 
+[![Live Demo](https://img.shields.io/badge/🚀_LIVE_DEMO-Ver_Proyecto-E1306C?style=for-the-badge&logo=rocket&logoColor=white)](https://bstr7.github.io/API-WEB-SCRAPING-INSTAGRAM-UNOFFICIAL/)
+
 ## 🚀 Características
 
 - 🛠 **Configuración YAML:** Cambia el perfil a scrapear desde `user.yml` sin modificar el código.
